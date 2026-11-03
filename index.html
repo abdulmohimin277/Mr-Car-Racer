@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Mr-Racer — 3D Highway Racer</title>
+<meta name="description" content="Mr-Racer is a 3D highway car racing game built with JavaScript and Three.js — dodge traffic, grab coins, and blast obstacles with your nitro guns. Install it on your phone or PC." />
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-180.png" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#060d1e" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Mr-Racer" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Three.js renders into this -->
+  <div id="game-root"></div>
+
+  <!-- ===================== LOGO SPLASH ===================== -->
+  <div id="screen-splash" class="screen splash-screen">
+    <div class="splash-inner">
+      <img src="logo.png" alt="Mr-Racer logo" class="splash-logo" />
+      <h1 class="game-title splash-title">Mr<span class="title-accent">-</span>Racer</h1>
+      <p class="game-sub">3D HIGHWAY RACER</p>
+    </div>
+  </div>
+
+  <!-- ===================== HUD ===================== -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-panel hud-score">
+        <span class="hud-label">SCORE</span>
+        <span id="hud-score">0</span>
+      </div>
+      <div class="hud-panel hud-center">
+        <span class="hud-label">COINS</span>
+        <span class="hud-coins"><span id="hud-coins">0</span> ⛁</span>
+      </div>
+      <div class="hud-panel hud-right">
+        <span class="hud-label">BEST</span>
+        <span id="hud-best">0</span>
+      </div>
+      <button id="btn-touch-cam" class="hud-panel touch-pause touch-cam hidden" aria-label="Change camera view">VIEW</button>
+      <button id="btn-touch-pause" class="hud-panel touch-pause hidden" aria-label="Pause">PAUSE</button>
+    </div>
+    <div class="hud-mid">
+      <div class="lives" id="hud-lives" title="Lives">
+        <span class="life"></span><span class="life"></span><span class="life"></span>
+      </div>
+      <div class="speedo">
+        <div class="speedo-bar"><div class="speedo-fill" id="speedo-fill"></div></div>
+        <span class="speedo-num">
+          <span id="hud-speed">0</span><em>km/h</em>
+        </span>
+      </div>
+      <div class="cooldown-wrap">
+        <div class="cooldown-label">GUN CHARGE</div>
+        <div class="cooldown-bar"><div class="cooldown-fill" id="cooldown-fill"></div></div>
+      </div>
+    </div>
+    <div class="hud-hints">← → steer &nbsp;·&nbsp; ↑ accelerate &nbsp;·&nbsp; ↓ brake &nbsp;·&nbsp; SPACE shoot &nbsp;·&nbsp; P pause</div>
+    <div id="countdown" class="countdown" style="opacity:0">3</div>
+    <div id="combo" class="combo" style="opacity:0"><span id="combo-label">COMBO ×1.0</span><div class="combo-fill" id="combo-fill"></div></div>
+    <div id="float-layer"></div>
+  </div>
+
+  <!-- Damage vignette -->
+  <div id="damage-vignette"></div>
+  <div id="low-hp-bar"></div>
+
+  <!-- ===================== SCREENS ===================== -->
+
+  <!-- MAIN MENU -->
+  <div id="screen-menu" class="screen hidden">
+    <div class="menu-card">
+      <div class="logo">
+        <div class="logo-flare"></div>
+        <img src="logo.png" alt="Mr-Racer logo" class="logo-img menu-logo" />
+        <h1 class="game-title">Mr<span class="title-accent">-</span>Racer</h1>
+        <p class="game-sub">3D HIGHWAY RACER</p>
+      </div>
+
+      <div class="menu-options">
+        <button id="btn-play" class="btn btn-primary">▶&nbsp; PLAY</button>
+        <button id="btn-options" class="btn btn-ghost">OPTIONS</button>
+        <button id="btn-howto" class="btn btn-ghost">HOW TO PLAY</button>
+        <button id="btn-garage" class="btn btn-ghost">GARAGE</button>
+        <button id="btn-download" class="btn btn-ghost">⬇&nbsp; DOWNLOAD</button>
+        <button id="btn-about" class="btn btn-ghost">ABOUT</button>
+      </div>
+
+      <div class="menu-foot">
+        <span class="best-badge">★ BEST SCORE&nbsp; <b id="menu-best">0</b></span>
+        <span class="foot-tip">Hold <kbd>↑</kbd> to speed up &amp; blast the traffic with <kbd>SPACE</kbd></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW TO PLAY -->
+  <div id="screen-howto" class="screen hidden">
+    <div class="menu-card">
+      <h2 class="screen-title">HOW TO PLAY</h2>
+      <div class="howto-grid">
+        <div class="howto-item"><span class="key">←</span><span class="key">→</span><div><b>Steer</b><p>Move between lanes — also A / D</p></div></div>
+        <div class="howto-item"><span class="key">↑</span><span class="key">W</span><div><b>Accelerate</b><p>Go faster, more distance = more score</p></div></div>
+        <div class="howto-item"><span class="key">X</span><span class="key">SHIFT</span><div><b>Drift</b><p>Hold to slide &amp; cut corners sharper. Earns drift points. Watch for oil slicks!</p></div></div>
+        <div class="howto-item"><span class="key">SPACE</span><div><b>Blaster</b><p>Shoot traffic &amp; barriers. Kills refill your gun charge.</p></div></div>
+        <div class="howto-item"><span class="key">C</span><div><b>Cockpit view</b><p>Toggle the in-car dashboard &amp; steering wheel. On touch devices use the VIEW button.</p></div></div>
+        <div class="howto-item"><span class="key">P</span><span class="key">ESC</span><div><b>Pause</b><p>R = quick restart, M = mute, N = refill blaster</p></div></div>
+        <div class="howto-item"><span class="coin-icon">⛁</span><div><b>Coins</b><p>Collect golden coins for bonus points.</p></div></div>
+        <div class="howto-item"><span class="health-icon">♥</span><div><b>Lives</b><p>You have 3 lives. Collisions cost one.</p></div></div>
+        <div class="howto-item"><span class="coin-icon">◆</span><div><b>Combos</b><p>Near-misses &amp; blaster kills build a COMBO multiplier up to ×4 — keep it alive for big scores!</p></div></div>
+        <div class="howto-item"><span class="coin-icon">TAP</span><div><b>Touch</b><p>On phones/tablets use the on-screen buttons. Tap GAS once to cruise, tap again to release.</p></div></div>
+      </div>
+      <button id="btn-howto-back" class="btn btn-ghost">←&nbsp; BACK</button>
+    </div>
+  </div>
+
+  <!-- OPTIONS -->
+  <div id="screen-options" class="screen hidden">
+    <div class="menu-card">
+      <h2 class="screen-title">OPTIONS</h2>
+
+      <div class="option-block">
+        <span class="row-label">CONTROLS</span>
+        <div class="keys-grid">
+          <div class="key-row"><span class="key">←</span><span class="key">→</span><b>Steer</b><em>A / D</em></div>
+          <div class="key-row"><span class="key">↑</span><span class="key">W</span><b>Accelerate</b></div>
+          <div class="key-row"><span class="key">↓</span><span class="key">S</span><b>Brake</b></div>
+          <div class="key-row"><span class="key">SPACE</span><b>Blaster</b></div>
+          <div class="key-row"><span class="key">X</span><span class="key">SHIFT</span><b>Drift</b></div>
+          <div class="key-row"><span class="key">C</span><b>Cockpit view</b></div>
+          <div class="key-row"><span class="key">P</span><span class="key">ESC</span><b>Pause</b></div>
+          <div class="key-row"><span class="key">R</span><b>Quick restart</b></div>
+          <div class="key-row"><span class="key">M</span><b>Mute sound</b></div>
+          <div class="key-row"><span class="key">N</span><b>Refill blaster charge</b></div>
+          <div class="key-row"><span class="key">H</span><b>Horn</b></div>
+          <div class="key-row"><span class="key">V</span><b>Wipers</b></div>
+        </div>
+        <p class="option-note">On phones &amp; tablets use the on-screen buttons: ◀ ▶ steer · GAS · BRAKE · DRIFT · FIRE</p>
+      </div>
+
+      <div class="menu-row">
+        <div class="diff-select">
+          <span class="row-label">DIFFICULTY</span>
+          <div class="seg" id="diff-seg">
+            <button data-diff="easy" class="seg-btn active">EASY</button>
+            <button data-diff="medium" class="seg-btn">MEDIUM</button>
+            <button data-diff="hard" class="seg-btn">HARD</button>
+          </div>
+        </div>
+        <div class="sound-select">
+          <span class="row-label">SOUND / MUSIC</span>
+          <div class="seg" id="sound-seg">
+            <button id="btn-sound" class="seg-btn active">SOUND ON</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-row">
+        <div class="diff-select" style="flex:1">
+          <span class="row-label">TIME OF DAY</span>
+          <div class="seg" id="time-seg">
+            <button data-time="day" class="seg-btn active">DAY</button>
+            <button data-time="cycle" class="seg-btn">CYCLE</button>
+            <button data-time="night" class="seg-btn">NIGHT</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-row">
+        <div class="diff-select" style="flex:1">
+          <span class="row-label">WEATHER</span>
+          <div class="seg" id="weather-seg">
+            <button data-weather="clear" class="seg-btn active">CLEAR</button>
+            <button data-weather="rain" class="seg-btn">RAIN</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-options-back" class="btn btn-ghost">←&nbsp; BACK</button>
+    </div>
+  </div>
+
+  <!-- GARAGE -->
+  <div id="screen-garage" class="screen hidden">
+    <div class="menu-card">
+      <h2 class="screen-title">GARAGE</h2>
+      <p class="option-note">Pick your ride &amp; paint. Your choice is saved automatically.</p>
+
+      <div class="menu-row car-row">
+        <div class="diff-select" style="flex:1">
+          <span class="row-label">YOUR RIDE</span>
+          <div class="seg seg-cars" id="car-seg">
+            <button data-car="ember" class="seg-btn car-btn" title="EMBER GT"><span class="swatch" style="background:#ffc219"></span>EMBER</button>
+            <button data-car="blaze" class="seg-btn car-btn" title="BLAZE X"><span class="swatch" style="background:#ff3b10"></span>BLAZE</button>
+            <button data-car="shadow" class="seg-btn car-btn" title="NIGHT FANG"><span class="swatch" style="background:#39404f"></span>SHADOW</button>
+            <button data-car="gold" class="seg-btn car-btn" title="GOLD RUSH"><span class="swatch" style="background:#e8c05a"></span>GOLD</button>
+            <button data-car="comet" class="seg-btn car-btn" title="COMET RS"><span class="swatch" style="background:#ff5e3d"></span>COMET</button>
+            <button data-car="onyx" class="seg-btn car-btn" title="ONYX GT"><span class="swatch" style="background:#2a2e37"></span>ONYX</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-row">
+        <div class="diff-select" style="flex:1">
+          <span class="row-label">PAINT</span>
+          <div class="seg paint-seg" id="paint-seg">
+            <button class="paint-btn seg-btn" data-paint="" title="Factory paint"><span class="swatch" style="background:#ffc219"></span>STOCK</button>
+            <button class="paint-btn seg-btn" data-paint="ff3b10" title="Hot red"><span class="swatch" style="background:#ff3b10"></span></button>
+            <button class="paint-btn seg-btn" data-paint="ff7a1a" title="Pumpkin"><span class="swatch" style="background:#ff7a1a"></span></button>
+            <button class="paint-btn seg-btn" data-paint="ffd23d" title="Gold"><span class="swatch" style="background:#ffd23d"></span></button>
+            <button class="paint-btn seg-btn" data-paint="4dd6ff" title="Sky blue"><span class="swatch" style="background:#4dd6ff"></span></button>
+            <button class="paint-btn seg-btn" data-paint="8ef06e" title="Neon green"><span class="swatch" style="background:#8ef06e"></span></button>
+            <button class="paint-btn seg-btn" data-paint="f5f2ea" title="Pearl white"><span class="swatch" style="background:#f5f2ea"></span></button>
+            <button class="paint-btn seg-btn" data-paint="14161b" title="Midnight black"><span class="swatch" style="background:#14161b"></span></button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-garage-back" class="btn btn-ghost">←&nbsp; BACK</button>
+    </div>
+  </div>
+
+  <!-- ABOUT -->
+  <div id="screen-about" class="screen hidden">
+    <div class="menu-card">
+      <div class="logo">
+        <img src="logo.png" alt="Mr-Racer logo" class="logo-img about-logo" />
+        <h1 class="game-title about-title">Mr<span class="title-accent">-</span>Racer</h1>
+        <p class="game-sub">3D HIGHWAY RACER</p>
+      </div>
+
+      <p class="about-desc">Mr-Racer is a fully 3D highway racing game built with JavaScript &amp; Three.js — dodge
+        traffic, drift for boosts, grab coins, and blast obstacles with your twin nose blasters. It runs on PC and
+        mobile, and can be installed as an app.</p>
+
+      <div class="about-credits">
+        <span class="row-label">DESIGNED BY STUDENTS</span>
+        <h3 class="credits-name">Abdul-Mohimin</h3>
+        <h3 class="credits-name">Sahal Ashfaq</h3>
+      </div>
+
+      <div class="about-features">
+        <span class="row-label">WHAT THE GAME CAN DO</span>
+        <ul class="feat-list">
+          <li><b>3D racing</b> — full 3D highway on a single flat road</li>
+          <li><b>Garage</b> — 6 racing cars with 8 paint colours</li>
+          <li><b>Drift &amp; boost</b> — slide corners, release a speed-boost pop</li>
+          <li><b>Day / night</b> — DAY, NIGHT or a full CYCLE lighting</li>
+          <li><b>Blasters</b> — shoot traffic &amp; barriers (hits refill ammo)</li>
+          <li><b>Combos</b> — near-misses &amp; kills build a ×4 multiplier</li>
+          <li><b>3 difficulties</b> — Easy, Medium, Hard with dense traffic</li>
+          <li><b>Camera</b> — chase or cockpit view, always fixed ahead</li>
+          <li><b>Keyboard &amp; touch</b> — plays with keys or on-screen buttons</li>
+          <li><b>Best score</b> — saved on your device</li>
+          <li><b>Install app</b> — install Mr-Racer on mobile &amp; PC</li>
+          <li><b>Anime.js</b> — smooth menu, panels &amp; popup animations</li>
+        </ul>
+      </div>
+
+      <button id="btn-about-back" class="btn btn-ghost">←&nbsp; BACK</button>
+    </div>
+  </div>
+
+  <!-- DOWNLOAD -->
+  <div id="screen-download" class="screen hidden">
+    <div class="menu-card">
+      <img src="logo.png" alt="Mr-Racer logo" class="logo-img menu-logo" />
+      <h2 class="screen-title">INSTALL Mr-Racer</h2>
+      <p class="option-note">Install Mr-Racer on your phone or PC for quick access and offline play.</p>
+
+      <div class="download-actions">
+        <button id="btn-install" class="btn btn-primary">⤓&nbsp; INSTALL APP</button>
+        <button id="btn-shortcut" class="btn btn-ghost hidden">🖥&nbsp; DESKTOP SHORTCUT</button>
+      </div>
+
+      <p id="install-status" class="download-status">Checking install support…</p>
+
+      <div class="download-help">
+        <span class="row-label">HOW TO INSTALL</span>
+        <ul class="feat-list">
+          <li><b>Android</b> — Chrome menu (⋮) → “Install app” or “Add to Home screen”.</li>
+          <li><b>iPhone / iPad</b> — Safari → Share → “Add to Home Screen”.</li>
+          <li><b>Windows / Mac</b> — Chrome or Edge → install icon in the address bar (or menu → “Install Mr-Racer”).</li>
+          <li><b>Windows desktop shortcut</b> — tap DESKTOP SHORTCUT, run the downloaded installer once, and the Mr-Racer icon appears on your Desktop.</li>
+          <li><b>Offline play</b> — after installing, open Mr-Racer from your home screen or app list.</li>
+        </ul>
+      </div>
+
+      <button id="btn-download-back" class="btn btn-ghost">←&nbsp; BACK</button>
+    </div>
+  </div>
+
+  <!-- PAUSE -->
+  <div id="screen-pause" class="screen hidden">
+    <div class="menu-card small">
+      <h2 class="screen-title">GAME PAUSED</h2>
+      <button id="btn-resume" class="btn btn-primary">▶&nbsp; RESUME</button>
+      <button id="btn-restart" class="btn btn-ghost">↻&nbsp; RESTART</button>
+      <button id="btn-menu" class="btn btn-ghost">MAIN MENU</button>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="screen-gameover" class="screen hidden">
+    <div class="menu-card">
+      <h2 class="gameover-title">RACE OVER</h2>
+      <div class="stats-grid">
+        <div class="stat"><span class="stat-label">SCORE</span><span id="go-score" class="stat-value">0</span></div>
+        <div class="stat"><span class="stat-label">COINS</span><span id="go-coins" class="stat-value">0</span></div>
+        <div class="stat"><span class="stat-label">DISTANCE</span><span id="go-distance" class="stat-value">0 m</span></div>
+        <div class="stat"><span class="stat-label">TRAFFIC BLASTED</span><span id="go-kills" class="stat-value">0</span></div>
+      </div>
+      <div class="new-best hidden" id="new-best-badge">★ NEW BEST SCORE!</div>
+      <button id="btn-retry" class="btn btn-primary">↻&nbsp; RACE AGAIN</button>
+      <button id="btn-gomenu" class="btn btn-ghost">MAIN MENU</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="screen-loading" class="screen hidden">
+    <div class="loading-inner">
+      <img src="logo.png" alt="Mr-Racer logo" class="loading-logo" />
+      <div class="loading-icon">Mr-Racer</div>
+      <div class="loader-bar"><div class="loader-fill"></div></div>
+      <p>STARTING ENGINES…</p>
+    </div>
+  </div>
+
+  <!-- Touch controls (shown automatically on touch devices) -->
+  <div id="touch-controls" class="hidden">
+    <div class="touch-left">
+      <button class="tbtn tbtn-horn" data-touch="horn" aria-label="Horn">HORN</button>
+      <button class="tbtn tbtn-drift" data-touch="drift" aria-label="Drift">DRIFT</button>
+      <div class="touch-btns">
+        <button class="tbtn" data-touch="left" aria-label="Left">◀</button>
+        <button class="tbtn" data-touch="right" aria-label="Right">▶</button>
+      </div>
+    </div>
+    <div class="touch-right">
+      <div class="touch-extra">
+        <button class="tbtn tbtn-wiper" id="tbtn-wiper" data-touch="wipers" aria-label="Wipers">WIPERS</button>
+      </div>
+      <button class="tbtn tbtn-fire" data-touch="fire" aria-label="Shoot">FIRE</button>
+      <div class="touch-pedals">
+        <button class="tbtn tbtn-brake" data-touch="brake" aria-label="Brake">BRAKE</button>
+        <button class="tbtn tbtn-gaspedal" data-touch="gas" aria-label="Accelerate">GAS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js (bundled locally; falls back to a CDN if missing) -->
+  <script src="js/vendor/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"><\/script>');
+    }
+  </script>
+  <!-- anime.js (bundled locally; falls back to a CDN) for smooth UI/menu/HUD animations -->
+  <script src="js/vendor/anime.min.js"></script>
+  <script>
+    if (typeof anime === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"><\/script>');
+    }
+  </script>
+  <script src="js/audio.js"></script>
+  <script src="js/car.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

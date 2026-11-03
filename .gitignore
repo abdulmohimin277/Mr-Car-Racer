@@ -1,0 +1,17 @@
+﻿# Windows junk
+*.lnk
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+*.tmp
+*.bak
